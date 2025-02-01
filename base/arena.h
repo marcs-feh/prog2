@@ -23,6 +23,9 @@ struct Arena {
 	Uintptr last_allocation;
 };
 
+// Helper macro
+#define arena_push(A, Type, Count) ((Type *)arena_alloc((A), sizeof(Type) * (Count), alignof(Type)))
+
 // Initialize a memory arena from a buffer
 bool arena_init_buffer(Arena* a, U8* data, Size len);
 
@@ -40,6 +43,5 @@ void arena_free_all(Arena* a);
 
 // Allocate `size` bytes aligned to `align`, return null on failure
 void *arena_alloc(Arena* a, Size size, Size align);
-
 
 #endif /* Include guard */

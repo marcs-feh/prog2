@@ -1,5 +1,6 @@
 #include "base.h"
 #include "memory.h"
+#include "arena.h"
 #include "strings.h"
 
 #define UTF8_RANGE1 ((I32)0x7f)
@@ -234,6 +235,18 @@ bool str_eq(String a, String b){
 	}
 
 	return true;
+}
+
+String str_clone(String c, Arena* arena){
+	String res = {0};
+	U8* new_buf = arena_push(arena, U8, c.len + 1);
+	if(new_buf != NULL){
+		mem_copy_no_overlap(new_buf, c.v, c.len);
+		new_buf[c.len] = 0;
+		res.len = c.len;
+		res.v = new_buf;
+	}
+	return res;
 }
 
 UTF8Iterator str_iterator(String s){

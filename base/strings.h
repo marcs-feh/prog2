@@ -2,6 +2,7 @@
 #define _strings_h_include_
 
 #include "base.h"
+#include "arena.h"
 
 typedef struct UTF8Encode UTF8Encode;
 typedef struct UTF8Decode UTF8Decode;
@@ -78,7 +79,7 @@ Size str_codepoint_count(String s);
 Size str_codepoint_offset(String s, Size n);
 
 // Clone a string
-// String str_clone(String s, Mem_Allocator allocator);
+String str_clone(String s, Arena* a);
 
 // Concatenate 2 strings
 // String str_concat(String a, String b, Mem_Allocator allocator);
