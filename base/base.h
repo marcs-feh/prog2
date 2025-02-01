@@ -74,6 +74,10 @@ static_assert(CHAR_BIT == 8, "Invalid char size");
 extern int printf(const char*, ...);
 #endif
 
+#if __STDC_VERSION__ < 202311L
+	#define typeof(X) __typeof__(X)
+#endif
+
 static inline _Noreturn
 void panic(char const * msg) {
 	#ifndef NO_STDIO

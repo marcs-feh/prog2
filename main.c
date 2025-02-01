@@ -127,8 +127,6 @@ String EXAMPLE_SRC = str_literal(
 	"{ : , [] }"
 );
 
-// TODO: Check for C23
-#define typeof(X) __typeof__(X)
 
 #define dyn_array_push(ArrPtr, Elem) do {                         \
 	void* _da_tmp_new_data_ = arena_realloc((ArrPtr)->arena,            \
