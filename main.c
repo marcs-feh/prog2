@@ -1,4 +1,5 @@
 #include "base/base.h"
+#include "base/strings.h"
 #include "base/arena.h"
 
 typedef struct Lexer Lexer;
@@ -17,6 +18,7 @@ struct Lexer {
 	Size   current;
 	Size   previous;
 	Error* error_head;
+	Arena* arena;
 };
 
 typedef enum {
@@ -38,12 +40,15 @@ typedef enum {
 
 struct Token {
 	String lexeme;
-	U8 kind;
+	U64    offset;
+	I32    kind;
 };
 
 struct TokenArray {
 	Token* v;
 	Size   len;
+	Size   cap;
+	Arena* arena;
 };
 
 U8 lexer_advance(Lexer* lex){
@@ -66,17 +71,28 @@ bool is_number(U8 c){
 	return (c >= '0') && (c <= '9');
 }
 
+static inline
+bool is_whitespace(U8 c){
+	return (c == ' ') || (c == '\t') || (c == '\r') || (c == '\n');
+}
+
 Token lexer_next(Lexer* lex){
-	U8 c = lexer_advance(lex);
+	U8 c = 0;
 	Token tk = {0};
 
+	// Skip whitespaces
+	for(c = lexer_advance(lex); is_whitespace(c); c = lexer_advance(lex)){
+	}
+
 	switch(c){
+		case   0: tk.kind = TK_EndOfFile; return tk;
 		case '{': tk.kind = TK_CurlyOpen; return tk;
 		case '}': tk.kind = TK_CurlyClose; return tk;
 		case '[': tk.kind = TK_SquareOpen; return tk;
 		case ']': tk.kind = TK_SquareClose; return tk;
 		case ':': tk.kind = TK_Colon; return tk;
 		case ',': tk.kind = TK_Comma; return tk;
+
 	}
 
 	if(c == '"'){
@@ -94,17 +110,70 @@ Token lexer_next(Lexer* lex){
 		return tk;
 	}
 
-
 	tk.kind = TK_Error;
 	return tk;
 }
 
-void lexer_push_error(Lexer* lex, String msg, Arena* arena){
+void lexer_push_error(Lexer* lex, String msg, Size offset, Arena* arena){
 	Error* e = arena_push(arena, Error, 1);
 
 	if(e == NULL) { return; }
-	e->description = msg;
+	e->description = str_clone(msg, arena);
+	e->next = lex->error_head;
+	e->offset = offset;
 }
 
-int main(){}
+String EXAMPLE_SRC = str_literal(
+	"{ : , [] }"
+);
+
+// TODO: Check for C23
+#define typeof(X) __typeof__(X)
+
+#define dyn_array_push(ArrPtr, Elem) do {                         \
+	void* _da_tmp_new_data_ = arena_realloc((ArrPtr)->arena,            \
+	   (ArrPtr)->v,                                               \
+	   (ArrPtr)->cap * sizeof(typeof(*(ArrPtr)->v)),              \
+	   max(16, (ArrPtr)->cap * 2) * sizeof(typeof(*(ArrPtr)->v)), \
+	   alignof(typeof(*(ArrPtr)->v)));                            \
+                                                                  \
+	if(_da_tmp_new_data_ != NULL){                                \
+		(ArrPtr)->v = _da_tmp_new_data_;                          \
+	}                                                             \
+} while(0)
+
+int main(){
+	Arena main_arena = {0};
+	Arena temp_arena = {0};
+
+	if(!arena_init_virtual(&main_arena, 512 * MiB)){
+		panic("Failed to reserve virtual memory");
+	}
+	if(!arena_init_virtual(&temp_arena, 16 * MiB)){
+		panic("Failed to reserve virtual memory");
+	}
+
+	const Size initial_token_buf = 1024;
+	TokenArray tokens = {
+		.v = arena_push(&main_arena, Token, initial_token_buf),
+		.len = 0,
+		.cap = initial_token_buf,
+		.arena = &main_arena,
+	};
+
+	Lexer lex = {
+		.source = EXAMPLE_SRC,
+		.current = 0,
+		.previous = 0,
+		.error_head = NULL,
+		.arena = &main_arena,
+	};
+
+	while(1){
+		Token tk = lexer_next(&lex);
+		if(tk.kind == TK_EndOfFile){ break; }
+
+		dyn_array_push(&tokens, tk);
+	}
+}
 

@@ -1,6 +1,4 @@
 #if defined(TARGET_OS_LINUX)
-
-#define _GNU_SOURCE
 #include "virtual_memory.h"
 #include <sys/mman.h>
 #include <unistd.h>

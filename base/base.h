@@ -99,7 +99,7 @@ void ensure(bool pred, char const * msg){
 
 typedef struct String String;
 
-#define StrLit(cslit) (String){ .data = (byte const*)(cslit), .len = (sizeof(cslit) - 1) }
+#define str_literal(cslit) (String){ .v = (uint8_t const*)(cslit), .len = (sizeof(cslit) - 1) }
 
 struct String {
 	U8 const * v;

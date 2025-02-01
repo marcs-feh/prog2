@@ -38,6 +38,9 @@ void arena_destroy(Arena *a);
 // Resize arena allocation in-place, gives back same pointer on success, null on failure
 void* arena_resize(Arena* a, void* ptr, Size new_size);
 
+// Try to resize allocation in-place, otherwhise re-allocates
+void* arena_realloc(Arena* a, void* ptr, Size old_size, Size new_size, Size align);
+
 // Reset arena, marking all its owned pointers as freed
 void arena_free_all(Arena* a);
 

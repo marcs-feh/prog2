@@ -69,8 +69,7 @@ void arena_free_all(Arena* a){
 }
 
 void* arena_resize(Arena* a, void* ptr, Size new_size){
-	if(a->kind == ArenaKind_Virtual) panic("Unimplemented");
-
+	retry:
 	if((Uintptr)ptr == a->last_allocation){
 		Uintptr base = (Uintptr)a->data.ptr;
 		Uintptr current = base + (Uintptr)a->offset;
@@ -78,6 +77,13 @@ void* arena_resize(Arena* a, void* ptr, Size new_size){
 		Size last_allocation_size = current - a->last_allocation;
 
 		if((current - last_allocation_size + new_size) > limit){
+			if(a->kind == ArenaKind_Virtual){
+				Size to_commit = (current - last_allocation_size + new_size) - limit;
+				if(virtual_block_push(&a->data, to_commit) != NULL){
+					goto retry;
+				}
+			}
+
 			return NULL; /* No space left*/
 		}
 
@@ -86,6 +92,17 @@ void* arena_resize(Arena* a, void* ptr, Size new_size){
 	}
 
 	return NULL;
+}
+
+void* arena_realloc(Arena* a, void* ptr, Size old_size, Size new_size, Size align){
+	void* new_ptr = arena_resize(a, ptr, new_size);
+	if(new_ptr == NULL){
+		new_ptr = arena_alloc(a, new_size, align);
+		if(new_ptr != NULL){
+			mem_copy_no_overlap(new_ptr, ptr, min(old_size, new_size));
+		}
+	}
+	return new_ptr;
 }
 
 void arena_destroy(Arena* a){

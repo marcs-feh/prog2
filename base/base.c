@@ -1,4 +1,7 @@
 // Core translation unit
+#if defined(TARGET_OS_LINUX)
+#define _DEFAULT_SOURCE
+#endif
 
 #include "strings.c"
 #include "memory.c"
