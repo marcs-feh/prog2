@@ -55,11 +55,20 @@ typedef _Atomic(Uintptr) AtomicUintptr;
 #define container_of(Ptr, Type, Member) \
 	((Type *)(((void *)(Ptr)) - offsetof(Type, Member)))
 
-#ifndef __cplusplus
+// TODO: Change this to 202311L in the future, many versions of gcc for whatever
+// reason haven't updated the number
+#if !defined(__cplusplus) && (__STDC_VERSION__ < 202000L)
 #undef bool
 typedef _Bool bool;
 #define static_assert(Pred, Msg) _Static_assert(Pred, Msg)
 #endif
+
+// TODO: Change this to 202311L in the future, many versions of gcc for whatever
+// reason haven't updated the number
+#if (__STDC_VERSION__ < 202000L)
+#define typeof(X) __typeof__(X)
+#endif
+
 
 #define hint_likely(X) __builtin_expect(!!(X), 1)
 #define hint_unlikely(X) __builtin_expect(!!(X), 0)
@@ -72,10 +81,6 @@ static_assert(CHAR_BIT == 8, "Invalid char size");
 
 #ifndef NO_STDIO
 extern int printf(const char*, ...);
-#endif
-
-#if __STDC_VERSION__ < 202311L
-	#define typeof(X) __typeof__(X)
 #endif
 
 static inline _Noreturn
