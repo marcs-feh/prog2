@@ -1,6 +1,7 @@
 #include "base/base.h"
 #include "base/strings.h"
 #include "base/arena.h"
+#include <stdio.h>
 
 typedef struct Lexer Lexer;
 typedef struct Token Token;
@@ -127,18 +128,58 @@ String EXAMPLE_SRC = str_literal(
 	"{ : , [] }"
 );
 
+#define DYN_ARRAY_MIN_CAP 4
 
-#define dyn_array_push(ArrPtr, Elem) do {                         \
-	void* _da_tmp_new_data_ = arena_realloc((ArrPtr)->arena,            \
-	   (ArrPtr)->v,                                               \
-	   (ArrPtr)->cap * sizeof(typeof(*(ArrPtr)->v)),              \
-	   max(16, (ArrPtr)->cap * 2) * sizeof(typeof(*(ArrPtr)->v)), \
-	   alignof(typeof(*(ArrPtr)->v)));                            \
-                                                                  \
-	if(_da_tmp_new_data_ != NULL){                                \
-		(ArrPtr)->v = _da_tmp_new_data_;                          \
-	}                                                             \
+#define dyn_array_resize(ArrPtr, NewCap) do {                                                           \
+	Size _da_tmp_new_cap_ = max(DYN_ARRAY_MIN_CAP, NewCap);                                             \
+	void* _da_tmp_new_data_ = arena_realloc((ArrPtr)->arena,                                            \
+		(ArrPtr)->v,                                                                                    \
+		(ArrPtr)->cap * sizeof(typeof(*(ArrPtr)->v)),                                                   \
+		_da_tmp_new_cap_ * sizeof(typeof(*(ArrPtr)->v)),                                                \
+		alignof(typeof(*(ArrPtr)->v)));                                                                 \
+															                                            \
+	if(_da_tmp_new_data_ != NULL){                                                                      \
+		Size _da_tmp_copy_count_ = sizeof(typeof(*(ArrPtr)->v)) * min((ArrPtr)->len, _da_tmp_new_cap_); \
+		mem_copy(_da_tmp_new_data_, (ArrPtr)->v, _da_tmp_copy_count_);                                  \
+		(ArrPtr)->v = _da_tmp_new_data_;                                                                \
+		(ArrPtr)->cap = _da_tmp_new_cap_;                                                               \
+	}                                                                                                   \
 } while(0)
+
+
+#define dyn_array_push(ArrPtr, Elem) do {                  \
+	if(((ArrPtr)->len > (ArrPtr)->cap) || !((ArrPtr)->v)){ \
+		dyn_array_resize((ArrPtr), (ArrPtr)->cap * 2);     \
+	}                                                      \
+	(ArrPtr)->v[(ArrPtr)->len] = Elem;                     \
+	(ArrPtr)->len += 1;                                    \
+} while(0)
+
+#define dyn_array_pop(ArrPtr) do {      \
+	if(hint_likely((ArrPtr)->len > 0)){ \
+		(ArrPtr)->len -= 1;             \
+	}                                   \
+} while(0)
+
+#define dyn_array_insert(ArrPtr) do { \
+} while(0)
+
+typedef struct {
+	F32* v;
+	Size len;
+	Size cap;
+	Arena* arena;
+} F32Array;
+
+static inline
+void print_array(F32Array arr){
+	printf("cap:%ld len:%ld [", arr.cap, arr.len);
+	for(Size i = 0; i < arr.len; i++){
+		if(i > 0) putc(' ', stdout);
+		printf("%.2f", arr.v[i]);
+	}
+	printf("]\n");
+}
 
 int main(){
 	Arena main_arena = {0};
@@ -151,27 +192,43 @@ int main(){
 		panic("Failed to reserve virtual memory");
 	}
 
-	const Size initial_token_buf = 1024;
-	TokenArray tokens = {
-		.v = arena_push(&main_arena, Token, initial_token_buf),
+	// const Size initial_token_buf = 1024;
+	// TokenArray tokens = {
+	// 	.v = arena_push(&main_arena, Token, initial_token_buf),
+	// 	.len = 0,
+	// 	.cap = initial_token_buf,
+	// 	.arena = &main_arena,
+	// };
+	//
+	// Lexer lex = {
+	// 	.source = EXAMPLE_SRC,
+	// 	.current = 0,
+	// 	.previous = 0,
+	// 	.error_head = NULL,
+	// 	.arena = &main_arena,
+	// };
+	//
+	// while(1){
+	// 	Token tk = lexer_next(&lex);
+	// 	if(tk.kind == TK_EndOfFile){ break; }
+	//
+	// 	dyn_array_push(&tokens, tk);
+	// }
+
+	F32Array arr = {
+		.v = arena_push(&main_arena, F32, 1),
 		.len = 0,
-		.cap = initial_token_buf,
+		.cap = 0,
 		.arena = &main_arena,
 	};
 
-	Lexer lex = {
-		.source = EXAMPLE_SRC,
-		.current = 0,
-		.previous = 0,
-		.error_head = NULL,
-		.arena = &main_arena,
-	};
-
-	while(1){
-		Token tk = lexer_next(&lex);
-		if(tk.kind == TK_EndOfFile){ break; }
-
-		dyn_array_push(&tokens, tk);
-	}
+	print_array(arr);
+	dyn_array_push(&arr, 20);
+	dyn_array_push(&arr, 43.12);
+	dyn_array_push(&arr, -1.0);
+	dyn_array_push(&arr, 20);
+	dyn_array_push(&arr, 20);
+	print_array(arr);
+	dyn_array_pop(&arr);
 }
 
