@@ -44,12 +44,8 @@ typedef _Atomic(int64_t) AtomicI64;
 typedef _Atomic(Size)    AtomicSize;
 typedef _Atomic(Uintptr) AtomicUintptr;
 
-// This is to avoid conflict with stdlib's "abs()"
-#define abs_val(X) (( (X) < 0ll) ? -(X) : (X))
-
 #define min(A, B)  (((A) < (B)) ? (A) : (B))
 #define max(A, B)  (((A) > (B)) ? (A) : (B))
-
 #define clamp(Lo, X, Hi) min(max(Lo, X), Hi)
 
 #define container_of(Ptr, Type, Member) \

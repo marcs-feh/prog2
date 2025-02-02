@@ -95,6 +95,9 @@ void* arena_resize(Arena* a, void* ptr, Size new_size){
 }
 
 void* arena_realloc(Arena* a, void* ptr, Size old_size, Size new_size, Size align){
+	if(ptr == NULL){
+		return arena_alloc(a, new_size, align);
+	}
 	void* new_ptr = arena_resize(a, ptr, new_size);
 	if(new_ptr == NULL){
 		new_ptr = arena_alloc(a, new_size, align);

@@ -128,7 +128,7 @@ String EXAMPLE_SRC = str_literal(
 	"{ : , [] }"
 );
 
-#define DYN_ARRAY_MIN_CAP 4
+#define DYN_ARRAY_MIN_CAP 16
 
 #define dyn_array_resize(ArrPtr, NewCap) do {                                                           \
 	Size _da_tmp_new_cap_ = max(DYN_ARRAY_MIN_CAP, NewCap);                                             \
@@ -138,7 +138,7 @@ String EXAMPLE_SRC = str_literal(
 		_da_tmp_new_cap_ * sizeof(typeof(*(ArrPtr)->v)),                                                \
 		alignof(typeof(*(ArrPtr)->v)));                                                                 \
 															                                            \
-	if(_da_tmp_new_data_ != NULL){                                                                      \
+	if(hint_likely(_da_tmp_new_data_ != NULL)){                                                         \
 		Size _da_tmp_copy_count_ = sizeof(typeof(*(ArrPtr)->v)) * min((ArrPtr)->len, _da_tmp_new_cap_); \
 		mem_copy(_da_tmp_new_data_, (ArrPtr)->v, _da_tmp_copy_count_);                                  \
 		(ArrPtr)->v = _da_tmp_new_data_;                                                                \
@@ -146,9 +146,8 @@ String EXAMPLE_SRC = str_literal(
 	}                                                                                                   \
 } while(0)
 
-
 #define dyn_array_push(ArrPtr, Elem) do {                  \
-	if(((ArrPtr)->len > (ArrPtr)->cap) || !((ArrPtr)->v)){ \
+	if(((ArrPtr)->len >= (ArrPtr)->cap)){                  \
 		dyn_array_resize((ArrPtr), (ArrPtr)->cap * 2);     \
 	}                                                      \
 	(ArrPtr)->v[(ArrPtr)->len] = Elem;                     \
@@ -159,9 +158,6 @@ String EXAMPLE_SRC = str_literal(
 	if(hint_likely((ArrPtr)->len > 0)){ \
 		(ArrPtr)->len -= 1;             \
 	}                                   \
-} while(0)
-
-#define dyn_array_insert(ArrPtr) do { \
 } while(0)
 
 typedef struct {
@@ -216,19 +212,14 @@ int main(){
 	// }
 
 	F32Array arr = {
-		.v = arena_push(&main_arena, F32, 1),
+		.v = NULL,
 		.len = 0,
 		.cap = 0,
 		.arena = &main_arena,
 	};
 
+	for(int i = 0; i < 32; i++)
+		dyn_array_push(&arr, 1.0 / (i+1));
 	print_array(arr);
-	dyn_array_push(&arr, 20);
-	dyn_array_push(&arr, 43.12);
-	dyn_array_push(&arr, -1.0);
-	dyn_array_push(&arr, 20);
-	dyn_array_push(&arr, 20);
-	print_array(arr);
-	dyn_array_pop(&arr);
 }
 
